@@ -48,13 +48,28 @@ class PresenceChannel extends Channel
             return;
         }
 
-        $this->broadcastToOthers($connection, [
-            'event' => 'pusher_internal:member_removed',
-            'channel' => $this->channelName,
-            'data' => json_encode([
-                'user_id' => $this->users[$connection->socketId]->user_id,
-            ]),
-        ]);
+        $isLastConnection = true;
+
+        foreach ($this->users as $socketId => $channelData) {
+            if (
+                $socketId !== $connection->socketId &&
+                $channelData->user_id === $this->users[$connection->socketId]->user_id
+            ) {
+                $isLastConnection = false;
+                break;
+            }
+        }
+
+        // fire the event only if is the user last connection
+        if ($isLastConnection) {
+            $this->broadcastToOthers($connection, [
+                'event' => 'pusher_internal:member_removed',
+                'channel' => $this->channelName,
+                'data' => json_encode([
+                    'user_id' => $this->users[$connection->socketId]->user_id,
+                ]),
+            ]);
+        }
 
         unset($this->users[$connection->socketId]);
     }
